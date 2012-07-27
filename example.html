@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
+    <title>ShuntJS</title>
+  </head>
+  <body>
+    <form id="calc" method="get" action="#please-enable-javascript">
+      <input type="text" id="input" size="40">
+      <input type="submit" value="Calc!">
+    </form>
+    
+    <script src="shunt.js"></script>
+    <script>
+      (function(doc) {
+        var ctx = new Shunt.Context;
+        ctx.def('abs');
+        ctx.def('log');
+        
+        doc.querySelector('#calc').addEventListener('submit',
+          function(event) {
+            event.preventDefault();
+            
+            var input = doc.querySelector('#input'),
+                value = input.value;
+                
+            if (value.trim() === '')
+                return;
+            
+            var a = +new Date; 
+            input.value = Shunt.parse(value, ctx);
+            console.log((+new Date) - a);
+          }
+          , false
+        )
+      })(document);
+    </script>
+  </body>
+</html>
