@@ -40,7 +40,7 @@
       T_POPEN       = 8,  // (
       T_PCLOSE      = 16, // )
       T_COMMA       = 32, // ,
-      T_OPERATOR    = 64, // operator (unused)
+      T_OPERATOR    = 64, // operator
       T_PLUS        = 65, // +
       T_MINUS       = 66, // -
       T_TIMES       = 67, // * 
@@ -153,16 +153,15 @@
   
   // ----------------------------------------
   // scanner
-  var RE_PATTERN = /^([!,\+\-\*\/\^%\(\)]|\d*\.\d+|\d+\.\d*|\d+|[a-z_A-Zπ]+[a-z_A-Z0-9]*|[ \t]+)/,  
-      RE_NUMBER  = /^\d*\.\d+|\d+\.\d*|\d+$/,
-      RE_IDENT   = /^[a-z_A-Zπ]+[a-z_A-Z0-9]*$/;
+  var RE_PATTERN = /^([!,\+\-\*\/\^%\(\)]|\d*\.\d+|\d+\.\d*|\d+|[a-z_A-Zπ]+[a-z_A-Z0-9]*|[ \t]+)/;
       
   function Scanner(term) {
     this.tokens = new Stack;
     
+    var prev = { type: T_OPERATOR }; // dummy
+    var match, token, type;
+    
     while (term.length) {
-      var match, token;
-      
       if (!(match = term.match(RE_PATTERN)))
         throw new Error('syntax error: near `' + term.substr(0, 10) + '``');
       
@@ -174,81 +173,55 @@
       if ((token = token.trim()).length === 0)
         continue; // whitespace
       
-      if (RE_NUMBER.test(token)) {
-        this.tokens.push(new Token(parseFloat(token), T_NUMBER));
+      if (!isNaN(token)) {
+        this.tokens.push(prev = new Token(parseFloat(token), T_NUMBER));
         continue;
       }
       
-      if (RE_IDENT.test(token)) {
-        this.tokens.push(new Token(token, T_IDENT));
-        continue;
-      }
-      
-      var type;
-      
-      switch (token) {
-        case '!':
-          type = T_NOT;
+      switch (type = this.lookup[token] || T_IDENT) {          
+        case T_PLUS:
+          if (prev.type & T_OPERATOR) type = T_UNARY_PLUS;
           break;
           
-        case '+':
-          type = T_PLUS;
+        case T_MINUS:
+          if (prev.type & T_OPERATOR) type = T_UNARY_MINUS;
           break;
           
-        case '-':
-          type = T_MINUS;
-          break;
-          
-        case '*':
-          type = T_TIMES;
-          break;
-          
-        case '/':
-          type = T_DIV;
-          break;
-          
-        case '%':
-          type = T_MOD;
-          break;
-          
-        case '^':
-          type = T_POW;
-          break;
-          
-        case '(':
-          type = T_POPEN;
-          
-          var prev = this.tokens.last();
-          if (prev !== undefined) {
-            switch (prev.type) {
-              case T_IDENT:
-                prev.type = T_FUNCTION;
-                break;
-                
-              case T_NUMBER:
-              case T_PCLOSE:
-                this.tokens.push(new Token('*', T_TIMES));
-                break;
-            }
+        case T_POPEN:
+          switch (prev.type) {
+            case T_IDENT:
+              prev.type = T_FUNCTION;
+              break;
+              
+            case T_NUMBER:
+            case T_PCLOSE:
+              this.tokens.push(new Token('*', T_TIMES));
+              break;
           }
           
           break;
-          
-        case ')':
-          type = T_PCLOSE;
-          break;
-          
-        case ',':
-          type = T_COMMA;
-          break;
       }
       
-      this.tokens.push(new Token(token, type));
+      this.tokens.push(prev = new Token(token, type));
     }
   }
   
   Scanner.prototype = {
     constructor: Scanner,
+    
+    lookup: {
+      '+': T_PLUS,
+      '-': T_MINUS,
+      '*': T_TIMES,
+      '/': T_DIV,
+      '%': T_MOD,
+      '^': T_POW,
+      '(': T_POPEN,
+      ')': T_PCLOSE,
+      ',': T_COMMA,
+      '!': T_NOT,
+      'π': T_IDENT
+    },
     
     prev: function prev() { return this.tokens.prev(); },
     next: function next() { return this.tokens.next(); },
@@ -257,9 +230,6 @@
   
   // ----------------------------------------
   // parser
-  
-  var ST_1 = 1,
-      ST_2 = 2;
   
   function Parser(scanner) {
     this.scanner = scanner;
@@ -289,8 +259,6 @@
   
   Parser.prototype = {
     constructor: Parser,
-    
-    state: ST_1,
     
     reduce: function reduce(ctx) {
       this.stack = new Stack;
@@ -396,7 +364,7 @@
         }
         
         // throw?
-        return 0;
+        return 0.;
       }
       
       switch (type) {
@@ -411,7 +379,7 @@
       }
       
       // throw?
-      return 0;
+      return 0.;
     },
     
     argc: function argc(token) {
@@ -457,7 +425,6 @@
         case T_IDENT:
           // If the token is a number (identifier), then add it to the output queue.        
           this.queue.push(token);
-          this.state = ST_2;
           break;
           
         case T_FUNCTION:
@@ -492,11 +459,8 @@
         // If the token is an operator, op1, then:
         case T_PLUS:
         case T_MINUS:
-          if (this.state === ST_1)
-            token.type = token.type === T_PLUS ? T_UNARY_PLUS : T_UNARY_MINUS;
-          
-          // no break
-         
+        case T_UNARY_PLUS:
+        case T_UNARY_MINUS: 
         case T_TIMES:
         case T_DIV:
         case T_MOD:
@@ -537,13 +501,11 @@
           
           // push op1 onto the stack.
           this.stack.push(token);
-          this.state = ST_1;
           break;
           
         case T_POPEN:
           // If the token is a left parenthesis, then push it onto the stack.
           this.stack.push(token);
-          this.state = ST_1;
           break;
           
         // If the token is a right parenthesis:  
@@ -569,8 +531,7 @@
           // If the token at the top of the stack is a function token, pop it onto the output queue.
           if ((token = this.stack.last()) !== undefined && token.type === T_FUNCTION)
             this.queue.push(this.stack.pop());
-          
-          this.state = ST_2;  
+           
           break;
           
         default:
