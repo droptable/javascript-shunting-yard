@@ -180,11 +180,11 @@
       
       switch (type = this.lookup[token] || T_IDENT) {          
         case T_PLUS:
-          if (prev.type & T_OPERATOR) type = T_UNARY_PLUS;
+          if (prev.type & T_OPERATOR || prev.type === T_POPEN) type = T_UNARY_PLUS;
           break;
           
         case T_MINUS:
-          if (prev.type & T_OPERATOR) type = T_UNARY_MINUS;
+          if (prev.type & T_OPERATOR || prev.type === T_POPEN) type = T_UNARY_MINUS;
           break;
           
         case T_POPEN:
