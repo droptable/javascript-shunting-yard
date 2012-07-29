@@ -29,9 +29,10 @@
             if (value.trim() === '')
                 return;
             
-            var a = +new Date; 
-            input.value = Shunt.parse(value, ctx);
-            console.log((+new Date) - a);
+            var a = +new Date, r = Shunt.parse(value, ctx), b = (+new Date) - a;
+            input.value = r;
+            
+            console.log(b);
           }
           , false
         )

@@ -31,7 +31,7 @@
     module.exports = fn();
   else
     window.Shunt = fn();
-})(function() {  
+})(function(undefined) { 
   // ----------------------------------------
   // tokens
   var T_NUMBER      = 1,  // number
@@ -69,66 +69,44 @@
   // ----------------------------------------
   // stack
   function Stack() {
-    this.stack = [];
     this.index = -1;
   }
   
   Stack.prototype = {
     constructor: Stack,
     
-    size: function size() {
-      return this.stack.length;
-    },
+    length: 0,
     
-    push: function push(v) {
-      return this.stack.push(v);
-    },
-    
-    pop: function pop() {
-      if (!this.stack.length)
-        return null;
-      
-      return this.stack.pop();
-    },
-    
-    shift: function shift() {
-      if (!this.stack.length)
-        return null;
-      
-      return this.stack.shift();
-    },
-    
-    unshift: function unshift(v) {
-      return this.stack.unshift(v);
-    },
+    push:    Array.prototype.push,
+    pop:     Array.prototype.pop,
+    shift:   Array.prototype.shift,
+    unshift: Array.prototype.unshift,
     
     first: function first() {
-      return this.stack.length ? this.stack[0] : null;
+      // this is actualy faster than checking "this.length" everytime.
+      // is looks like common jitter are able to optimize 
+      // array out-of-bounds checks very very well :-)
+      return this[0];
     },
     
     last: function last() {
-      return this.stack.length ? this.stack[this.stack.length - 1] : null;
+      // yada yada yada see comment in .first() :-)
+      return this[this.length - 1];
     },
     
     peek: function peek() {
-      if (this.index + 1 >= this.stack.length)
-        return null;
-      
-      return this.stack[this.index + 1];
-    },
-    
-    prev: function pref() {
-      if (this.index - 1 < 0)
-        return null;
-      
-      return this.stack[--this.index];
+      // yada yada yada see comment in .first() :-)
+      return this[this.index + 1];
     },
     
     next: function next() {
-      if (this.index + 1 >= this.stack.length)
-        return null;
-      
-      return this.stack[++this.index];
+      // yada yada yada see comment in .first() :-)
+      return this[++this.index];
+    },
+    
+    prev: function prev() {
+      // yada yada yada see comment in .first() :-)
+      return this[--this.index];
     }
   };
   
@@ -241,7 +219,7 @@
           type = T_POPEN;
           
           var prev = this.tokens.last();
-          if (prev !== null) {
+          if (prev !== undefined) {
             switch (prev.type) {
               case T_IDENT:
                 prev.type = T_FUNCTION;
@@ -291,10 +269,10 @@
     
     var token;
     
-    while ((token = this.scanner.next()) !== null)
+    while ((token = this.scanner.next()) !== undefined)
       this.handle(token);
     
-    while ((token = this.stack.pop()) !== null) {
+    while ((token = this.stack.pop()) !== undefined) {
       if (token.type === T_POPEN || token.type === T_PCLOSE)
         throw new Error('parse error: unmatched parentheses');
       
@@ -320,7 +298,7 @@
       
       // While there are input tokens left
       // Read the next token from input.
-      while ((token = this.queue.shift()) !== null) {
+      while ((token = this.queue.shift()) !== undefined) {
         switch (token.type) {
           case T_NUMBER:
           case T_IDENT:
@@ -381,7 +359,7 @@
       
       // If there is only one value in the stack
       // That value is the result of the calculation.
-      if (this.stack.size() === 1)
+      if (this.stack.length === 1)
         return this.stack.pop().value;
       
       // If there are more values in the stack
@@ -391,33 +369,30 @@
     
     op: function op(type, lhs, rhs) {
       if (lhs !== null) {
-        lhs = lhs.value;
-        rhs = rhs.value;
-        
         switch (type) {
           case T_PLUS:
-            return lhs + rhs;
+            return lhs.value + rhs.value;
             
           case T_MINUS:
-            return lhs - rhs;
+            return lhs.value - rhs.value;
             
           case T_TIMES:
-            return lhs * rhs;
+            return lhs.value * rhs.value;
             
           case T_DIV:
-            if (rhs === 0.) 
+            if (rhs.value === 0.) 
               throw new Error('runtime error: division by zero');
             
-            return lhs / rhs;
+            return lhs.value / rhs.value;
             
           case T_MOD:
-            if (rhs === 0.)
+            if (rhs.value === 0.)
               throw new Error('runtime error: modulo division by zero');
             
-            return lhs % rhs;
+            return lhs.value % rhs.value;
             
           case T_POW:
-            return Math.pow(lhs, rhs);
+            return Math.pow(lhs.value, rhs.value);
         }
         
         // throw?
@@ -459,10 +434,10 @@
       var argc = 0,
           next = this.scanner.peek();
       
-      if (next !== null && next.type !== T_PCLOSE) {
+      if (next !== undefined && next.type !== T_PCLOSE) {
         argc = 1;
         
-        while ((next = this.scanner.next()) !== null) {
+        while ((next = this.scanner.next()) !== undefined) {
           this.handle(next);
           
           if (next.type === T_PCLOSE)
@@ -496,7 +471,7 @@
           // If the token is a function argument separator (e.g., a comma):
           var pe = false;
           
-          while ((token = this.stack.last()) !== null) {
+          while ((token = this.stack.last()) !== undefined) {
             if (token.type === T_POPEN) {
               pe = true;
               break;
@@ -529,7 +504,7 @@
         case T_NOT:
           var token2;
           
-          both: while ((token2 = this.stack.last()) !== null) {
+          both: while ((token2 = this.stack.last()) !== undefined) {
             // While there is an operator token, o2, at the top of the stack
             // op1 is left-associative and its precedence is less than or equal to that of op2,
             // or op1 has precedence less than that of op2,
@@ -577,7 +552,7 @@
           
           // Until the token at the top of the stack is a left parenthesis,
           // pop operators off the stack onto the output queue
-          while ((token = this.stack.pop()) !== null) {
+          while ((token = this.stack.pop()) !== undefined) {
             if (token.type === T_POPEN) {
               // Pop the left parenthesis from the stack, but not onto the output queue.
               pe = true;
@@ -592,7 +567,7 @@
             throw new Error('parse error: unmatched parentheses');
           
           // If the token at the top of the stack is a function token, pop it onto the output queue.
-          if ((token = this.stack.last()) !== null && token.type === T_FUNCTION)
+          if ((token = this.stack.last()) !== undefined && token.type === T_FUNCTION)
             this.queue.push(this.stack.pop());
           
           this.state = ST_2;  
