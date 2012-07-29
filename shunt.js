@@ -312,6 +312,8 @@
   Parser.prototype = {
     constructor: Parser,
     
+    state: ST_1,
+    
     reduce: function reduce(ctx) {
       this.stack = new Stack;
       var len = 0, token;
