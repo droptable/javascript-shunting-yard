@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge;chrome=1" />
+    
+    <title>ShuntJS - Shunting Yard Parser with pure JavaScript!</title>
+    <link rel="stylesheet" href="img/style.css">
+  </head>
+  <body>
+    <p class="fork-me"><a href="https://github.com/droptable/javascript-shunting-yard"><img src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a></p>
+    
+    <header>
+      <h1><em>ShuntJS</em> - Shunting Yard Parser with pure JavaScript!</h1>
+      <div class="get-it">
+        <p><a href="shunt.7z">Get it here!</a></p>
+        <p class="sub">RequireJS &amp; NodeJS / CommonJS compatible! <strong>MIT Licence</strong></p>
+      </div>
+    </header>
+    
+    <div id="main">
+      <noscript>You need Javascript for this example!</noscript>
+      
+      <section class="try">
+        <h2>Try it!</h2>
+        <form action="#please-enable-javascript" id="calc">
+          <input type="text" id="input" placeholder="Expression">
+          <input type="submit" value="Evaluate!">
+        </form>
+      </section>
+      
+      <section class="how">
+        <h2>How it works</h2>
+        <code>&lt;script src="shunt.js"&gt&lt/script&gt;
+&lt;script&gt;
+  var exp = '1+2*3/4^5%6',
+      res = Shunt.parse(exp); // Number(1.005859375)
+      
+  // using a context for functions and constants
+  var ctx = new Shunt.Context();
+  ctx.def('abs');                                   // wraps `Math.abs`
+  ctx.def('foo', 1.5);                              // defines constant `foo`
+  ctx.def('bar', function(a, b) { return a * b; }); // defines function `bar`
+  
+  var exp = 'foo + bar(2 + 4, abs(-1000))',
+      res = Shunt.parse(exp, ctx); // Number(6001.5)
+&lt;/script&gt;
+</code>
+      </section>
+      
+      <section class="api">
+        <h2>API</h2>
+        <dl>
+          <dt>Shunt.Context</dt>
+          <dd>This class holds constants and functions witch can be used inside expressions</dd>
+          
+          <dt>Shunt.Parser</dt>
+          <dd>The Parser</dd>
+          
+          <dt>Shunt.Scanner</dt>
+          <dd>Tokenizes the expression and privides a simple iterator</dd>
+          
+          <dt>Shunt.Stack</dt>
+          <dd>Provides a simple Iterator-API for Shunt.Token's</dd>
+          
+          <dt>Shunt.Token</dt>
+          <dd>Represents one Token of a expression, e.g. the Number '1' of expression '1+2'</dd>
+        </dl>
+      </section>
+    </div>
+    
+    <script src="shunt.js"></script>
+    <script>
+      (function(doc) {
+        var ctx = new Shunt.Context();
+        ctx.def('abs');
+        ctx.def('log');
+        
+        doc.querySelector('#calc').addEventListener('submit',
+          function(event) {
+            event.preventDefault();
+            
+            var input = doc.querySelector('#input'),
+                value = input.value;
+                
+            if (value.trim() === '')
+                return;
+            
+            input.value = Shunt.parse(value, ctx);
+          }
+          , false
+        );
+      })(document);
+    </script>
+  </body>  
+</html>

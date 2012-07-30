@@ -32,6 +32,8 @@
   else
     window.Shunt = fn();
 })(function(undefined) { 
+  'use strict';
+  
   // ----------------------------------------
   // tokens
   var T_NUMBER      = 1,  // number
