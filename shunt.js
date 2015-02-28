@@ -51,7 +51,8 @@
       T_POW         = 70, // ^
       T_UNARY_PLUS  = 71, // unary +
       T_UNARY_MINUS = 72, // unary -
-      T_NOT         = 73; // unary ! (convert (n > 0 || n < 0) to 0 and 0 to 1)
+      T_NOT         = 73, // unary ! (convert (n > 0 || n < 0) to 0 and 0 to 1)
+      T_SQRT        = 74; // unary √
   
   // ----------------------------------------
   // token
@@ -132,7 +133,7 @@
     
     cs: function cs(name) {
       if (typeof this.cst[name] === 'undefined')
-        throw new Error('runtime error: constant "' . name + '" is not defined');
+        throw new Error('runtime error: constant "' + name + '" is not defined');
       
       return this.cst[name];
     },
@@ -155,7 +156,7 @@
   
   // ----------------------------------------
   // scanner
-  var RE_PATTERN = /^([!,\+\-\*\/\^%\(\)]|\d*\.\d+|\d+\.\d*|\d+|[a-z_A-Zπ]+[a-z_A-Z0-9]*|[ \t]+)/;
+  var RE_PATTERN = /^([√!,\+\-\*\/\^%\(\)]|\d*\.\d+|\d+\.\d*|\d+|[a-z_A-Zπ]+[a-z_A-Z0-9]*|[ \t]+)/;
       
   function Scanner(term) {
     this.tokens = new Stack;
@@ -222,7 +223,8 @@
       ')': T_PCLOSE,
       ',': T_COMMA,
       '!': T_NOT,
-      'π': T_IDENT
+      'π': T_IDENT,
+      '√': T_SQRT
     },
     
     prev: function prev() { return this.tokens.prev(); },
@@ -291,6 +293,7 @@
           case T_MOD:
           case T_POW:
           case T_NOT:
+          case T_SQRT:
             // It is known a priori that the operator takes n arguments.
             var argc = this.argc(token);
             
@@ -378,6 +381,9 @@
           
         case T_UNARY_PLUS:
           return +rhs.value;
+          
+        case T_SQRT:
+          return Math.sqrt(rhs.value);
       }
       
       // throw?
@@ -468,6 +474,7 @@
         case T_MOD:
         case T_POW:
         case T_NOT:
+        case T_SQRT:
           var token2;
           
           both: while ((token2 = this.stack.last()) !== undefined) {
@@ -490,6 +497,7 @@
               case T_MOD:
               case T_POW:
               case T_NOT:
+              case T_SQRT:
                 var p1 = this.preced(token),
                     p2 = this.preced(token2);
                 
@@ -554,12 +562,12 @@
         case T_NOT:  
         case T_UNARY_PLUS:
         case T_UNARY_MINUS:
-        
-        case T_POW:  
+              
+        case T_POW: 
+        case T_SQRT: 
           return 2; //rtl
       }
       
-      // ggf. erweitern :-)
       return 0; //nassoc
     },
   
@@ -571,6 +579,7 @@
           return 4;
           
         case T_POW:
+        case T_SQRT:
           return 3;
           
         case T_TIMES:
