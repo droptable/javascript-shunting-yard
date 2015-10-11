@@ -156,7 +156,7 @@
   
   // ----------------------------------------
   // scanner
-  var RE_PATTERN = /^([√!,\+\-\*\/\^%\(\)]|\d*\.\d+|\d+\.\d*|\d+|[a-z_A-Zπ]+[a-z_A-Z0-9]*|[ \t]+)/;
+  var RE_PATTERN = /^([√!,\+\-\*\/\^%\(\)]|(?:\d*\.\d+|\d+\.\d*|\d+)(?:[eE][+-]?\d+)?|[a-z_A-Zπ]+[a-z_A-Z0-9]*|[ \t]+)/;
       
   function Scanner(term) {
     this.tokens = new Stack;
